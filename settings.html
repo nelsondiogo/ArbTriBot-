@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Configurações{% endblock %}
+
+{% block content %}
+<div style="max-width: 720px;">
+
+  <h1 style="font-family:var(--mono); font-size:18px; margin-bottom:24px;">Configurações</h1>
+
+  <!-- ── API Keys ── -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+      <span class="card-title">🔐 Chaves de API da Exchange</span>
+      {% if settings.has_api %}
+      <span class="badge badge-green">✓ API configurada</span>
+      {% else %}
+      <span class="badge badge-red">⚠ API não configurada</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px; color:var(--muted2); margin-bottom:20px; line-height:1.6;">
+        As chaves são <strong style="color:var(--text);">criptografadas</strong> com AES-256 antes de serem salvas.
+        Apenas o bot pode lê-las — nunca são exibidas em texto claro.
+      </p>
+
+      <form method="POST">
+        <input type="hidden" name="action" value="save_api">
+
+        <div class="field">
+          <label class="field-label">Exchange</label>
+          <select name="exchange">
+            <option value="bybit"   {% if settings.exchange == 'bybit'   %}selected{% endif %}>Bybit (Futuros)</option>
+            <option value="binance" {% if settings.exchange == 'binance' %}selected{% endif %}>Binance (Futuros)</option>
+            <option value="okx"     {% if settings.exchange == 'okx'     %}selected{% endif %}>OKX</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="field-label">API Key</label>
+          <input type="password" name="api_key"
+            placeholder="{{ key_mask if key_mask else 'Cole sua API Key aqui' }}"
+            autocomplete="new-password">
+          {% if key_mask %}
+          <div style="font-size:12px; color:var(--muted2); margin-top:6px; font-family:var(--mono);">
+            Guardada: {{ key_mask }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="field">
+          <label class="field-label">API Secret</label>
+          <input type="password" name="api_secret"
+            placeholder="{{ secret_mask if secret_mask else 'Cole seu API Secret aqui' }}"
+            autocomplete="new-password">
+          {% if secret_mask %}
+          <div style="font-size:12px; color:var(--muted2); margin-top:6px; font-family:var(--mono);">
+            Guardado: {{ secret_mask }}
+          </div>
+          {% endif %}
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button type="submit" class="btn btn-green">Salvar Chaves</button>
+          {% if settings.has_api %}
+          <span style="font-size:12px; color:var(--muted2);">
+            Deixe os campos vazios para manter as chaves atuais.
+          </span>
+          {% endif %}
+        </div>
+      </form>
+
+      <div style="margin-top:20px; padding:14px; background:rgba(0,230,118,.04); border:1px solid rgba(0,230,118,.15); border-radius:8px; font-size:12px; color:var(--muted2); line-height:1.7;">
+        <strong style="color:var(--text);">Permissões recomendadas na exchange:</strong><br>
+        ✓ Read (Leitura) &nbsp;·&nbsp; ✓ Trade (Futuros) &nbsp;·&nbsp; ✗ Withdraw (nunca habilite saques)
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Trading Params ── -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+      <span class="card-title">⚙ Parâmetros de Trading</span>
+      <span class="mono" style="font-size:11px; color:var(--muted2);">Alterável com o bot ativo</span>
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="action" value="save_trading">
+
+        <div class="grid g2" style="gap:16px;">
+          <div class="field">
+            <label class="field-label">Par de Trading</label>
+            <input type="text" name="symbol" value="{{ settings.symbol }}" placeholder="BTC/USDT">
+            <div style="font-size:11px; color:var(--muted); margin-top:5px;">Ex: BTC/USDT, ETH/USDT</div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Timeframe</label>
+            <select name="timeframe">
+              {% for tf in ['1m','5m','15m','1h','4h'] %}
+              <option value="{{ tf }}" {% if settings.timeframe == tf %}selected{% endif %}>{{ tf }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label">% Recuo do Topo (Trailing Stop)</label>
+            <input type="number" name="trailing_pct" value="{{ settings.trailing_pct }}"
+              min="0.1" max="10" step="0.1">
+            <div style="font-size:11px; color:var(--muted); margin-top:5px;">
+              Bot fecha a posição quando o preço cai X% do pico
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">% do Saldo por Trade</label>
+            <input type="number" name="position_size_pct" value="{{ settings.position_size_pct }}"
+              min="1" max="100" step="1">
+            <div style="font-size:11px; color:var(--muted); margin-top:5px;">
+              % do saldo disponível alocado por operação
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-green">Salvar Configurações de Trading</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Regras da Estratégia (leitura) ── -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📐 Regras da Estratégia (Somente leitura)</span>
+    </div>
+    <div class="card-body">
+      <div class="grid g2" style="gap:10px;">
+        {% for label, val in [
+          ('RSI oversold (SHORT bloqueado)', '< 35'),
+          ('RSI overbought (LONG bloqueado)', '> 65'),
+          ('ADX mínimo (confirmação)', '> 25'),
+          ('Alinhamento EMA', 'EMA 9 / EMA 21'),
+          ('Candles de histórico', '100'),
+          ('Capital Shield', '99% do saldo inicial'),
+        ] %}
+        <div style="background:var(--surface); border-radius:8px; padding:14px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:12px; color:var(--muted2);">{{ label }}</span>
+          <span class="mono" style="font-size:13px; color:var(--text);">{{ val }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

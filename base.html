@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>nelsondiogo-bot · {% block title %}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #060b12;
+      --surface:   #0a1120;
+      --card:      #0f1928;
+      --border:    #162035;
+      --border2:   #1e2d45;
+      --green:     #00e676;
+      --green-dim: #00b058;
+      --red:       #ff3b55;
+      --red-dim:   #c42040;
+      --yellow:    #ffd600;
+      --blue:      #2979ff;
+      --text:      #dde6f5;
+      --muted:     #3d5270;
+      --muted2:    #647a9a;
+      --mono:      'Space Mono', monospace;
+      --sans:      'DM Sans', sans-serif;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      display: flex;
+      flex-direction: column;
+      background-image:
+        radial-gradient(ellipse 80% 30% at 50% -10%, rgba(0,230,118,.04) 0%, transparent 60%);
+    }
+
+    /* ── Nav ── */
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 0 24px;
+      height: 56px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--green);
+      text-transform: uppercase;
+      margin-right: 32px;
+      text-decoration: none;
+    }
+
+    .nav-links { display: flex; gap: 4px; flex: 1; }
+
+    .nav-links a {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted2);
+      text-decoration: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      transition: all .15s;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--text);
+      background: var(--card);
+    }
+
+    .nav-status {
+      font-family: var(--mono);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted2);
+    }
+
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+    .dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+    .dot.red   { background: var(--red); }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; } 50% { opacity:.4; }
+    }
+
+    .nav-logout {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 5px 12px;
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      margin-left: 16px;
+      transition: all .15s;
+    }
+    .nav-logout:hover { color: var(--red); border-color: var(--red-dim); }
+
+    /* ── Layout ── */
+    main {
+      flex: 1;
+      padding: 24px;
+      max-width: 1300px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted2);
+    }
+
+    .card-body { padding: 20px; }
+
+    /* ── Flash messages ── */
+    .flash-wrap { margin-bottom: 16px; }
+
+    .flash {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .flash.success {
+      background: rgba(0,230,118,.1);
+      border: 1px solid var(--green-dim);
+      color: var(--green);
+    }
+    .flash.error {
+      background: rgba(255,59,85,.1);
+      border: 1px solid var(--red-dim);
+      color: var(--red);
+    }
+
+    /* ── Utility ── */
+    .grid { display: grid; gap: 16px; }
+    .g2   { grid-template-columns: repeat(2, 1fr); }
+    .g3   { grid-template-columns: repeat(3, 1fr); }
+    .g4   { grid-template-columns: repeat(4, 1fr); }
+
+    .mono { font-family: var(--mono); }
+    .green  { color: var(--green); }
+    .red    { color: var(--red); }
+    .yellow { color: var(--yellow); }
+    .muted  { color: var(--muted2); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: opacity .15s;
+      text-decoration: none;
+    }
+    .btn:hover { opacity: .82; }
+
+    .btn-green  { background: var(--green);     color: #000; font-weight: 700; }
+    .btn-red    { background: var(--red-dim);   color: var(--text); }
+    .btn-ghost  { background: var(--border);    color: var(--muted2); }
+
+    /* ── Inputs ── */
+    input, select {
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      width: 100%;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus { border-color: var(--green); }
+    input::placeholder { color: var(--muted); }
+
+    label.field-label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted2);
+      margin-bottom: 8px;
+    }
+
+    .field { margin-bottom: 18px; }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .badge-green { background: rgba(0,230,118,.12); color: var(--green); }
+    .badge-red   { background: rgba(255,59,85,.12);  color: var(--red);   }
+    .badge-gray  { background: rgba(100,122,154,.12); color: var(--muted2); }
+
+    /* ── Stat card ── */
+    .stat { padding: 20px; }
+    .stat-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted2);
+      margin-bottom: 10px;
+    }
+    .stat-value {
+      font-family: var(--mono);
+      font-size: 26px;
+      font-weight: 700;
+    }
+    .stat-sub {
+      font-size: 12px;
+      color: var(--muted2);
+      margin-top: 4px;
+    }
+
+    @media (max-width: 768px) {
+      .g4, .g3 { grid-template-columns: repeat(2, 1fr); }
+      .g2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="nav-brand">nelsondiogo-bot</a>
+    <div class="nav-links">
+      <a href="/" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a>
+      <a href="/settings" class="{% if request.endpoint == 'settings_page' %}active{% endif %}">Configurações</a>
+    </div>
+    <div class="nav-status">
+      <span class="dot" id="nav-dot"></span>
+      <span id="nav-status-text" class="mono" style="font-size:11px">—</span>
+    </div>
+    <a href="/logout" class="nav-logout">Sair</a>
+  </nav>
+
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-wrap">
+        {% for cat, msg in messages %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <script>
+    // Polling do status a cada 5s para atualizar nav
+    async function pollStatus() {
+      try {
+        const r = await fetch('/api/status');
+        const d = await r.json();
+        const dot  = document.getElementById('nav-dot');
+        const txt  = document.getElementById('nav-status-text');
+        if (d.running) {
+          dot.className = 'dot green';
+          txt.textContent = d.price ? `${d.price.toLocaleString('pt', {minimumFractionDigits:2})} USDT` : 'ATIVO';
+        } else {
+          dot.className = 'dot red';
+          txt.textContent = 'PARADO';
+        }
+        {% block on_poll %}{% endblock %}
+      } catch(e) {}
+    }
+    pollStatus();
+    setInterval(pollStatus, 5000);
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

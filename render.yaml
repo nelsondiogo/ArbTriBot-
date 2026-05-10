@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: nelsondiogo-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
+    healthCheckPath: /health
+
+    # Disco persistente — garante que bot.db sobreviva a restarts
+    disk:
+      name: botdata
+      mountPath: /data
+      sizeGB: 1
+
+    envVars:
+      - key: FLASK_SECRET
+        generateValue: true          # Render gera automaticamente
+      - key: DASHBOARD_PASSWORD
+        value: TROQUE_ESTA_SENHA     # ← Altere no painel do Render
+      - key: PORT
+        value: 10000

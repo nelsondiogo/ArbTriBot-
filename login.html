@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>nelsondiogo-bot · Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:    #090d14;
+      --card:  #0f1520;
+      --border:#1a2540;
+      --green: #00e676;
+      --red:   #ff3b55;
+      --text:  #e2e8f0;
+      --muted: #4a6080;
+      --mono:  'Space Mono', monospace;
+      --sans:  'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-image:
+        radial-gradient(ellipse 60% 40% at 50% 0%, rgba(0,230,118,.06) 0%, transparent 70%);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 48px 40px;
+      width: 360px;
+      box-shadow: 0 0 60px rgba(0,0,0,.6);
+    }
+
+    .logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--green);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 32px;
+      color: var(--text);
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    input[type=password] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s;
+      margin-bottom: 24px;
+    }
+
+    input[type=password]:focus { border-color: var(--green); }
+
+    button {
+      width: 100%;
+      background: var(--green);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 13px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    button:hover { opacity: .88; }
+
+    .error {
+      background: rgba(255,59,85,.12);
+      border: 1px solid var(--red);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--red);
+      margin-bottom: 20px;
+    }
+
+    .footer {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">nelsondiogo-bot</div>
+    <h1>Acesso ao Dashboard</h1>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      <label>Senha</label>
+      <input type="password" name="password" placeholder="••••••••" autofocus>
+      <button type="submit">ENTRAR →</button>
+    </form>
+
+    <div class="footer">v6.0 · Powered by CCXT + Flask</div>
+  </div>
+</body>
+</html>

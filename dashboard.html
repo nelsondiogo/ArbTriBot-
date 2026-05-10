@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- ── Controles ── -->
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+  <div>
+    <h1 style="font-family:var(--mono); font-size:18px; font-weight:700; color:var(--text);">Trading Terminal</h1>
+    <p style="font-size:13px; color:var(--muted2); margin-top:4px;" id="status-msg">{{ bot.status_msg }}</p>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <span class="mono" style="font-size:11px; color:var(--muted2);">
+      {{ settings.exchange.upper() }} · {{ settings.symbol }} · {{ settings.timeframe }}
+    </span>
+    <button class="btn btn-green" id="btn-start" onclick="botAction('start')" {% if bot.running %}style="display:none"{% endif %}>
+      ▶ Iniciar Bot
+    </button>
+    <button class="btn btn-red" id="btn-stop" onclick="botAction('stop')" {% if not bot.running %}style="display:none"{% endif %}>
+      ■ Parar Bot
+    </button>
+  </div>
+</div>
+
+<!-- ── Stats Grid ── -->
+<div class="grid g4" style="margin-bottom:16px;">
+
+  <div class="card">
+    <div class="stat">
+      <div class="stat-label">Preço Atual</div>
+      <div class="stat-value green" id="current-price">
+        {{ "{:,.4f}".format(bot.current_price) if bot.current_price else "—" }}
+      </div>
+      <div class="stat-sub">{{ settings.symbol }}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="stat">
+      <div class="stat-label">PnL da Sessão</div>
+      <div class="stat-value {% if total_pnl >= 0 %}green{% else %}red{% endif %}" id="total-pnl">
+        {{ "{:+.2f}".format(total_pnl) }} USDT
+      </div>
+      <div class="stat-sub">{{ "{:.1f}".format(stats.pnl_pct if stats else 0) }}% do capital inicial</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="stat">
+      <div class="stat-label">Win Rate</div>
+      <div class="stat-value {% if win_rate >= 50 %}green{% else %}red{% endif %}">
+        {{ "{:.0f}".format(win_rate) }}%
+      </div>
+      <div class="stat-sub">{{ stats.winning_trades if stats else 0 }}/{{ stats.total_trades if stats else 0 }} trades</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="stat">
+      <div class="stat-label">Trailing Stop</div>
+      <div class="stat-value yellow">{{ settings.trailing_pct }}%</div>
+      <div class="stat-sub">recuo do pico</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Indicadores + Posição ── -->
+<div class="grid g2" style="margin-bottom:16px;">
+
+  <!-- Indicadores técnicos -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Indicadores em Tempo Real</span>
+      <span class="mono" style="font-size:11px; color:var(--muted2);" id="last-signal-badge">—</span>
+    </div>
+    <div class="card-body">
+      <div class="grid g3" style="gap:12px;" id="indicators-grid">
+        {% set ind = bot.indicators %}
+        {% for key, label in [('rsi','RSI 14'),('ema9','EMA 9'),('ema21','EMA 21'),('adx','ADX 14'),('dmp','DI+'),('dmn','DI−')] %}
+        <div style="background:var(--surface); border-radius:8px; padding:14px; border:1px solid var(--border);">
+          <div style="font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--muted2); margin-bottom:8px;">{{ label }}</div>
+          <div class="mono" style="font-size:18px; font-weight:700;" id="ind-{{ key }}">
+            {{ "{:.2f}".format(ind[key]) if ind and key in ind else "—" }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Filtros de entrada -->
+      <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+        <div class="badge badge-gray">RSI SHORT: &lt; {{ config.RSI_OVERSOLD }} → bloqueado</div>
+        <div class="badge badge-gray">RSI LONG: &gt; {{ config.RSI_OVERBOUGHT }} → bloqueado</div>
+        <div class="badge badge-gray">ADX mín: {{ config.ADX_MIN }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Posição Aberta -->
+  <div class="card" id="position-card">
+    <div class="card-header">
+      <span class="card-title">Posição Aberta</span>
+      <span id="pos-badge" class="badge badge-gray">SEM POSIÇÃO</span>
+    </div>
+    <div class="card-body" id="position-body">
+      {% if bot.position %}
+        {% set pos = bot.position %}
+        <div class="grid g2" style="gap:12px;">
+          <div>
+            <div class="stat-label">Direção</div>
+            <div class="mono" style="font-size:22px; font-weight:700;" class="{{ 'green' if pos.side == 'long' else 'red' }}">
+              {{ pos.side.upper() }}
+            </div>
+          </div>
+          <div>
+            <div class="stat-label">Entrada</div>
+            <div class="mono" style="font-size:18px;">{{ "{:,.4f}".format(pos.entry) }}</div>
+          </div>
+          <div>
+            <div class="stat-label">Quantidade</div>
+            <div class="mono" style="font-size:16px;">{{ pos.qty }}</div>
+          </div>
+          <div>
+            <div class="stat-label">Pico</div>
+            <div class="mono" style="font-size:16px;" id="pos-peak">{{ "{:,.4f}".format(pos.peak) }}</div>
+          </div>
+        </div>
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+          <div class="stat-label">PnL não realizado</div>
+          <div class="mono" style="font-size:28px; font-weight:700;" id="pos-pnl">—</div>
+        </div>
+      {% else %}
+        <div style="text-align:center; padding: 40px 0; color:var(--muted2);">
+          <div class="mono" style="font-size:40px; opacity:.3;">◎</div>
+          <div style="margin-top:12px; font-size:13px;">Aguardando sinal de entrada</div>
+          <div style="font-size:12px; margin-top:6px; color:var(--muted);">Último sinal: <span id="last-signal-txt" class="mono">{{ bot.last_signal }}</span></div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Histórico de Trades ── -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Histórico de Trades</span>
+    <form method="POST" action="/trades/clear" onsubmit="return confirm('Limpar histórico?')">
+      <button type="submit" class="btn btn-ghost" style="padding:6px 14px; font-size:10px;">Limpar</button>
+    </form>
+  </div>
+
+  {% if trades %}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Par</th>
+        <th>Direção</th>
+        <th>Entrada</th>
+        <th>Saída</th>
+        <th>Qtd</th>
+        <th>PnL</th>
+        <th>Motivo</th>
+        <th>Data</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in trades %}
+      <tr>
+        <td class="mono muted">{{ t.id }}</td>
+        <td class="mono">{{ t.symbol }}</td>
+        <td>
+          <span class="badge {{ 'badge-green' if t.side == 'long' else 'badge-red' }}">
+            {{ t.side.upper() }}
+          </span>
+        </td>
+        <td class="mono">{{ "{:,.4f}".format(t.entry_price) }}</td>
+        <td class="mono">{{ "{:,.4f}".format(t.exit_price) if t.exit_price else "—" }}</td>
+        <td class="mono">{{ t.quantity }}</td>
+        <td class="mono {% if t.pnl and t.pnl >= 0 %}green{% elif t.pnl %}red{% endif %}">
+          {{ "{:+.2f}".format(t.pnl) if t.pnl is not none else "—" }}
+        </td>
+        <td style="font-size:12px; color:var(--muted2);">{{ t.close_reason or "—" }}</td>
+        <td style="font-size:12px; color:var(--muted2);">
+          {{ t.opened_at.strftime('%d/%m %H:%M') if t.opened_at else "—" }}
+        </td>
+        <td>
+          <span class="badge {{ 'badge-green' if t.status == 'open' else 'badge-gray' }}">
+            {{ t.status.upper() }}
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="text-align:center; padding: 48px; color:var(--muted2);">
+    <div class="mono" style="font-size:12px; letter-spacing:2px;">NENHUM TRADE REGISTRADO</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function botAction(action) {
+    const r = await fetch(`/bot/${action}`, { method: 'POST' });
+    const d = await r.json();
+    alert(d.msg);
+    location.reload();
+  }
+
+  // Polling detalhado a cada 5s
+  async function pollFull() {
+    try {
+      const r = await fetch('/api/status');
+      const d = await r.json();
+
+      // Preço
+      const priceEl = document.getElementById('current-price');
+      if (priceEl && d.price) {
+        priceEl.textContent = d.price.toLocaleString('pt', {minimumFractionDigits:4, maximumFractionDigits:4});
+      }
+
+      // Status msg
+      const statusEl = document.getElementById('status-msg');
+      if (statusEl) statusEl.textContent = d.status_msg;
+
+      // Indicadores
+      if (d.indicators) {
+        for (const [k,v] of Object.entries(d.indicators)) {
+          const el = document.getElementById(`ind-${k}`);
+          if (el) el.textContent = v.toFixed(k.startsWith('ema') ? 4 : 2);
+        }
+      }
+
+      // Sinal
+      const sigBadge = document.getElementById('last-signal-badge');
+      const sigTxt   = document.getElementById('last-signal-txt');
+      if (sigBadge) {
+        const sig = d.last_signal.toUpperCase();
+        sigBadge.textContent = sig === 'NONE' ? 'SEM SINAL' : sig;
+        sigBadge.className = sig === 'LONG'  ? 'badge badge-green' :
+                             sig === 'SHORT' ? 'badge badge-red'  : 'badge badge-gray';
+      }
+      if (sigTxt) sigTxt.textContent = d.last_signal;
+
+      // PnL da posição
+      const posPnl = document.getElementById('pos-pnl');
+      if (posPnl) {
+        const pnl = d.pos_pnl || 0;
+        posPnl.textContent = (pnl >= 0 ? '+' : '') + pnl.toFixed(2) + ' USDT';
+        posPnl.className   = `mono ${pnl >= 0 ? 'green' : 'red'}`;
+        posPnl.style.fontSize = '28px';
+        posPnl.style.fontWeight = '700';
+      }
+
+      // Botões start/stop
+      document.getElementById('btn-start').style.display = d.running ? 'none' : '';
+      document.getElementById('btn-stop').style.display  = d.running ? ''     : 'none';
+
+    } catch(e) {}
+  }
+
+  pollFull();
+  setInterval(pollFull, 5000);
+</script>
+{% endblock %}
